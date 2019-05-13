@@ -12,12 +12,60 @@ import aircv as ac
 from PIL import Image
 from PIL import ImageDraw
 from settings import SCREENSHOT_SAVE_PATH, ICON_PATH, DEBUG
+import math
 
 
 class UiDevice:
     def __init__(self, device_id):
         self.driver = uiautomator2.connect(device_id)
         self._check_device_heath()
+
+    @staticmethod
+    def image_draw_lines(path, xys, fill='red', width=2):
+        img = Image.open(path)
+        draw = ImageDraw.Draw(img)
+        for xy in xys:
+            draw.line(xy, fill=fill, width=width)
+        img.show()
+
+    @staticmethod
+    def move_coordinate(x, y, o=0, z_len=100):
+        """o >=0, =<360"""
+        if 0 <= o <= 360:
+            t = [0, 90, 180, 270, 360]
+            if o in t:
+                if o == 0 or o == 360:
+                    return x + z_len, y
+                elif o == 90:
+                    return x, y - z_len
+                elif o == 180:
+                    return x - z_len, y
+                elif o == 270:
+                    return x, y + z_len
+            else:
+                p = 180 / math.pi
+                if 0 < o < 90:
+                    cx = z_len * math.cos(o / p)
+                    cy = z_len * math.sin(o / p)
+                    return x + cx, y - cy
+                elif 90 < o < 180:
+                    o = 90 - (o - 90)
+                    cx = z_len * math.cos(o / p)
+                    cy = z_len * math.sin(o / p)
+                    return x - cx, y - cy
+                elif 180 < o < 270:
+                    o = 90 - (o - 180)
+                    cx = z_len * math.cos(o / p)
+                    cy = z_len * math.sin(o / p)
+                    return x - cx, y + cy
+
+                elif 270 < o < 360:
+                    o = 90 - (o - 270)
+                    cx = z_len * math.cos(o / p)
+                    cy = z_len * math.sin(o / p)
+                    return x + cx, y + cy
+        else:
+            return x, y
 
     @staticmethod
     def _find_img_sift(icon_path, path=None, is_show=False, threshold=60):
@@ -30,12 +78,13 @@ class UiDevice:
             imsch = ac.imread(icon_path)
             img = Image.open(path)
             result = ac.find_sift(imsrc, imsch, min_match_count=threshold)
-            x = result.get('result')[0] / img.width
-            y = result.get('result')[1] / img.height
+            x = result.get('result')[0]
+            y = result.get('result')[1]
             if is_show:
                 draw = ImageDraw.Draw(img)
                 print(result)
-                res = (result.get('result')[0], result.get('result')[1],result.get('result')[0]+200, result.get('result')[1]-200)
+                res = (result.get('result')[0], result.get('result')[1], result.get('result')[0] + 1,
+                       result.get('result')[1] + 1)
                 draw.line(res, fill='red', width=3)
                 rec = result.get('rectangle')
                 draw.line((rec[0], rec[3], rec[2], rec[1], rec[0]), fill='red', width=5)

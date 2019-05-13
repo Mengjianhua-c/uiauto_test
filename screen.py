@@ -18,3 +18,11 @@ if __name__ == '__main__':
 
     xy = UiDevice._find_img_sift(WzPath.move_idx, path, threshold=3)
     print(xy)
+    xys = []
+    for idx in range(1, 30):
+        o = idx*5
+        z = UiDevice.move_coordinate(*xy, o)
+        c = (xy[0], xy[1], z[0], z[1])
+        xys.append(c)
+
+    UiDevice.image_draw_lines(path, xys)
