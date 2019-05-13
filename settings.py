@@ -38,6 +38,6 @@ comments = [
     '......'
 ]
 
-DEBUG = False
+DEBUG = True
 
 SCREEN_INTERVAL = 0.2

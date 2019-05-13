@@ -25,4 +25,4 @@ if __name__ == '__main__':
         c = (xy[0], xy[1], z[0], z[1])
         xys.append(c)
 
-    UiDevice.image_draw_lines(path, xys)
+    UiDevice.image_draw_lines(path, xys,)

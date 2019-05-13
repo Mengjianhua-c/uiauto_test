@@ -37,33 +37,33 @@ class UiDevice:
                 if o == 0 or o == 360:
                     return x + z_len, y
                 elif o == 90:
-                    return x, y - z_len
+                    return x, y + z_len
                 elif o == 180:
                     return x - z_len, y
                 elif o == 270:
-                    return x, y + z_len
+                    return x, y - z_len
             else:
                 p = 180 / math.pi
                 if 0 < o < 90:
                     cx = z_len * math.cos(o / p)
                     cy = z_len * math.sin(o / p)
-                    return x + cx, y - cy
+                    return x + cx, y + cy
                 elif 90 < o < 180:
                     o = 90 - (o - 90)
                     cx = z_len * math.cos(o / p)
                     cy = z_len * math.sin(o / p)
-                    return x - cx, y - cy
+                    return x - cx, y + cy
                 elif 180 < o < 270:
                     o = 90 - (o - 180)
                     cx = z_len * math.cos(o / p)
                     cy = z_len * math.sin(o / p)
-                    return x - cx, y + cy
+                    return x - cx, y - cy
 
                 elif 270 < o < 360:
                     o = 90 - (o - 270)
                     cx = z_len * math.cos(o / p)
                     cy = z_len * math.sin(o / p)
-                    return x + cx, y + cy
+                    return x + cx, y - cy
         else:
             return x, y
 
