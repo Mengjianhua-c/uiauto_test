@@ -36,7 +36,7 @@ class WangZhe:
         # 移动控制参数
         QUEUE_DATA.set('is_move', False)
         QUEUE_DATA.set('is_move_exit', False)
-        QUEUE_DATA.set('move_to', [0, 1, 2])
+        QUEUE_DATA.set('move_cos', (0, 1))
         QUEUE_DATA.set('move_idx', None)
         print('init {}'.format(QUEUE_DATA))
 
@@ -44,6 +44,14 @@ class WangZhe:
     def screen_event(is_screen=False, is_exit=False):
         QUEUE_DATA.set('is_screen', is_screen)
         QUEUE_DATA.set('is_screen_exit', is_exit)
+
+    @staticmethod
+    def move_event(angel=0, length=0, is_exit=False):
+        QUEUE_DATA.set('is_move_exit', is_exit)
+        QUEUE_DATA.set('is_move', True)
+        QUEUE_DATA.set('move_cos', (angel, length))
+        time.sleep(length)
+        QUEUE_DATA.set('is_move', False)
 
     def screen_executor(self):
 
@@ -83,7 +91,7 @@ class WangZhe:
 
     def find_move_idx(self):
         self.d.screenshot_minicap()
-        xy = self.d._find_img_sift(WzPath.move_idx)
+        xy = self.d._find_img_sift(WzPath.move_idx, threshold=5)
         if xy:
             QUEUE_DATA.set('move_idx', xy)
             return True
@@ -94,18 +102,31 @@ class WangZhe:
             if QUEUE_DATA.get('is_move_exit'):
                 break
             if QUEUE_DATA.get('is_move'):
-                idx = QUEUE_DATA.get('move_idx')+ QUEUE_DATA.get('move_to')
-                self.d.driver.drag(*idx)
+                bxy = QUEUE_DATA.get('move_idx')
+                c, t = QUEUE_DATA.get('move_cos')
+                toxy = self.d.move_coordinate(*bxy, c)
+                print('drag: {} -> {}'.format(bxy, toxy))
+                self.d.driver.touch.down(*bxy)
+                time.sleep(0.01)
+                self.d.driver.touch.move(*toxy)
+
+                time.sleep(t)
+                self.d.driver.touch.up()
+            else:
+                print('wait move event')
             time.sleep(0.2)
 
     def run(self):
         self.init_thread()
         if self.find_move_idx():
             w.screen_event(is_screen=True)
-            QUEUE_DATA.set('move_to', ())
+            w.move_event(210, 3)
+            w.move_event(90, 3)
 
         else:
             print('获取移动盘基坐标失败')
+        w.screen_event(is_exit=True)
+        w.move_event(is_exit=True)
 
 
 if __name__ == '__main__':

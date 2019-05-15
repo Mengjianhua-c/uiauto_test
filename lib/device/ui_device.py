@@ -68,7 +68,7 @@ class UiDevice:
             return x, y
 
     @staticmethod
-    def _find_img_sift(icon_path, path=None, is_show=False, threshold=60):
+    def _find_img_sift(icon_path, path=None, is_show=False, threshold=50):
         try:
             if DEBUG is True:
                 is_show = True
