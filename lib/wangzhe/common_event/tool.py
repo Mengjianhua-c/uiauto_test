@@ -27,6 +27,8 @@ class WangZhe:
         executor.submit(self.screen_executor)
         print('create move thread')
         executor.submit(self.move_thread)
+        print('crate click thread')
+        executor.submit(self.click_thread)
 
     @staticmethod
     def create_queue():
@@ -39,6 +41,13 @@ class WangZhe:
         QUEUE_DATA.set('move_cos', (0, 1))
         QUEUE_DATA.set('move_idx', None)
         print('init {}'.format(QUEUE_DATA))
+        # 点击屏幕控制参数
+        QUEUE_DATA.set('is_click_exit', False)
+        QUEUE_DATA.set('click_idx', ())
+        QUEUE_DATA.set('is_click', False)
+
+        # 通用坐标
+        QUEUE_DATA.set('common_fire_idx', ())
 
     @staticmethod
     def screen_event(is_screen=False, is_exit=False):
@@ -52,6 +61,14 @@ class WangZhe:
         QUEUE_DATA.set('move_cos', (angel, length))
         time.sleep(length)
         QUEUE_DATA.set('is_move', False)
+
+    @staticmethod
+    def click_event(x=None, y=None, is_exit=False):
+        QUEUE_DATA.set('is_click_exit', is_exit)
+        QUEUE_DATA.set('is_click', True)
+        QUEUE_DATA.set('click_idx', (x, y))
+        time.sleep(0.5)
+        QUEUE_DATA.set('is_click', False)
 
     def screen_executor(self):
 
@@ -89,17 +106,31 @@ class WangZhe:
                 print('close live ok')
                 break
 
-    def find_move_idx(self):
+    def find_init_idx(self):
         self.d.screenshot_minicap()
-        xy = self.d._find_img_sift(WzPath.move_idx, threshold=5)
-        if xy:
-            QUEUE_DATA.set('move_idx', xy)
+        movie_idx = self.d._find_img_sift(WzPath.move_idx, threshold=10)
+        common_fire_idx = self.d._find_img_sift(WzPath.common_fire_idx, threshold=5)
+        if movie_idx and common_fire_idx:
+            QUEUE_DATA.set('common_fire_idx', common_fire_idx)
+            QUEUE_DATA.set('move_idx', movie_idx)
             return True
         return False
+
+    def click_thread(self):
+        while True:
+            if QUEUE_DATA.get('is_click_exit'):
+                print('exit click thread')
+                break
+            if QUEUE_DATA.get('is_click'):
+                xy = QUEUE_DATA.get('click_idx')
+                print('click: {}'.format(xy))
+                self.d.driver.click(*xy)
+            time.sleep(0.1)
 
     def move_thread(self):
         while True:
             if QUEUE_DATA.get('is_move_exit'):
+                print('exit move thread')
                 break
             if QUEUE_DATA.get('is_move'):
                 bxy = QUEUE_DATA.get('move_idx')
@@ -112,19 +143,20 @@ class WangZhe:
 
                 time.sleep(t)
                 self.d.driver.touch.up()
-            else:
-                print('wait move event')
             time.sleep(0.2)
 
     def run(self):
         self.init_thread()
-        if self.find_move_idx():
+        if self.find_init_idx():
             w.screen_event(is_screen=True)
-            w.move_event(210, 3)
-            w.move_event(90, 3)
+            w.move_event(320, 3)
+            # w.move_event(90, 3)
+            w.click_event(*QUEUE_DATA.get('common_fire_idx'))
+            time.sleep(2)
 
         else:
-            print('获取移动盘基坐标失败')
+            print('获取基坐标失败')
+        w.click_event(is_exit=True)
         w.screen_event(is_exit=True)
         w.move_event(is_exit=True)
 
