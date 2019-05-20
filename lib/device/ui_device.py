@@ -68,7 +68,35 @@ class UiDevice:
             return x, y
 
     @staticmethod
-    def _find_img_sift(icon_path, path=None, is_show=False, threshold=50):
+    def _find_all_img_sift(icon_path, path=None, is_show=False, threshold=10):
+        try:
+            if DEBUG is True:
+                is_show = True
+            if path is None:
+                path = os.path.join(SCREENSHOT_SAVE_PATH, 'screenshot.png')
+            imsrc = ac.imread(path)
+            imsch = ac.imread(icon_path)
+            img = Image.open(path)
+            results = ac.find_all_sift(imsrc, imsch, min_match_count=threshold)
+            for result in results:
+                if is_show:
+                    draw = ImageDraw.Draw(img)
+                    print(result)
+                    res = (result.get('result')[0], result.get('result')[1], result.get('result')[0] + 1,
+                           result.get('result')[1] + 1)
+                    draw.line(res, fill='red', width=3)
+                    rec = result.get('rectangle')
+                    draw.line((rec[0], rec[3], rec[2], rec[1], rec[0]), fill='red', width=5)
+            try:
+                img.show()
+            except:
+                pass
+            return results
+        except:
+            return False
+
+    @staticmethod
+    def _find_img_sift(icon_path, path=None, is_show=False, threshold=10):
         try:
             if DEBUG is True:
                 is_show = True

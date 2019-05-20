@@ -26,9 +26,11 @@ class WangZhe:
         print('create screen thread')
         executor.submit(self.screen_executor)
         print('create move thread')
-        executor.submit(self.move_thread)
-        print('crate click thread')
+        executor.submit(self.drag_thread)
+        print('create click thread')
         executor.submit(self.click_thread)
+        print('create add skill thread')
+        executor.submit(self.add_skill_thread)
 
     @staticmethod
     def create_queue():
@@ -36,18 +38,26 @@ class WangZhe:
         QUEUE_DATA.set('is_screen', False)
         QUEUE_DATA.set('is_screen_exit', False)
         # 移动控制参数
-        QUEUE_DATA.set('is_move', False)
-        QUEUE_DATA.set('is_move_exit', False)
-        QUEUE_DATA.set('move_cos', (0, 1))
         QUEUE_DATA.set('move_idx', None)
-        print('init {}'.format(QUEUE_DATA))
+
+        # 拖动参数
+        QUEUE_DATA.set('is_drag', False)
+        QUEUE_DATA.set('is_drag_exit', False)
+        QUEUE_DATA.set('drag_cos', (0, 1))
+        QUEUE_DATA.set('drag_idx', ())
+
         # 点击屏幕控制参数
         QUEUE_DATA.set('is_click_exit', False)
         QUEUE_DATA.set('click_idx', ())
         QUEUE_DATA.set('is_click', False)
+        QUEUE_DATA.set('is_always_ckick', False)
+
+        # 加技能参数
+        QUEUE_DATA.set('is_add_skill_exit', False)
 
         # 通用坐标
         QUEUE_DATA.set('common_fire_idx', ())
+        QUEUE_DATA.set('baili_skill', [])
 
     @staticmethod
     def screen_event(is_screen=False, is_exit=False):
@@ -55,12 +65,13 @@ class WangZhe:
         QUEUE_DATA.set('is_screen_exit', is_exit)
 
     @staticmethod
-    def move_event(angel=0, length=0, is_exit=False):
-        QUEUE_DATA.set('is_move_exit', is_exit)
-        QUEUE_DATA.set('is_move', True)
-        QUEUE_DATA.set('move_cos', (angel, length))
+    def drag_event(drag_idx=(0, 0), angel=0, length=0, is_exit=False):
+        QUEUE_DATA.set('drag_idx', drag_idx)
+        QUEUE_DATA.set('is_drag_exit', is_exit)
+        QUEUE_DATA.set('is_drag', True)
+        QUEUE_DATA.set('drag_cos', (angel, length))
         time.sleep(length)
-        QUEUE_DATA.set('is_move', False)
+        QUEUE_DATA.set('is_drag', False)
 
     @staticmethod
     def click_event(x=None, y=None, is_exit=False):
@@ -110,9 +121,14 @@ class WangZhe:
         self.d.screenshot_minicap()
         movie_idx = self.d._find_img_sift(WzPath.move_idx, threshold=10)
         common_fire_idx = self.d._find_img_sift(WzPath.common_fire_idx, threshold=5)
+        skill_1 = self.d._find_img_sift(WzPath.baili_skill_1)
+        skill_2 = self.d._find_img_sift(WzPath.baili_skill_2)
+        skill_3 = self.d._find_img_sift(WzPath.baili_skill_3)
         if movie_idx and common_fire_idx:
             QUEUE_DATA.set('common_fire_idx', common_fire_idx)
             QUEUE_DATA.set('move_idx', movie_idx)
+            QUEUE_DATA.set('baili_skill', [skill_1, skill_2, skill_3])
+
             return True
         return False
 
@@ -127,14 +143,14 @@ class WangZhe:
                 self.d.driver.click(*xy)
             time.sleep(0.1)
 
-    def move_thread(self):
+    def drag_thread(self):
         while True:
-            if QUEUE_DATA.get('is_move_exit'):
-                print('exit move thread')
+            if QUEUE_DATA.get('is_drag_exit'):
+                print('exit drag thread')
                 break
-            if QUEUE_DATA.get('is_move'):
-                bxy = QUEUE_DATA.get('move_idx')
-                c, t = QUEUE_DATA.get('move_cos')
+            if QUEUE_DATA.get('is_drag'):
+                bxy = QUEUE_DATA.get('drag_idx')
+                c, t = QUEUE_DATA.get('drag_cos')
                 toxy = self.d.move_coordinate(*bxy, c)
                 print('drag: {} -> {}'.format(bxy, toxy))
                 self.d.driver.touch.down(*bxy)
@@ -145,24 +161,41 @@ class WangZhe:
                 self.d.driver.touch.up()
             time.sleep(0.2)
 
+    def add_skill_thread(self):
+        while True:
+            time.sleep(5)
+            if QUEUE_DATA.get('is_add_skill_exit'):
+                print('exit add skill thread')
+                break
+            all_skill = self.d._find_all_img_sift(WzPath.add_skill_button, threshold=4)
+            if all_skill:
+                skill_idx = all_skill[-1].get('result')
+                print('add skill')
+                self.click_event(*skill_idx)
+
+
     def run(self):
         self.init_thread()
         if self.find_init_idx():
             w.screen_event(is_screen=True)
-            w.move_event(320, 3)
-            # w.move_event(90, 3)
-            w.click_event(*QUEUE_DATA.get('common_fire_idx'))
+            w.drag_event(QUEUE_DATA.get('baili_skill')[1], 320, 3)
+
+            time.sleep(2)
+            # w.drag_event(90, 3)
+            # w.click_event(*QUEUE_DATA.get('common_fire_idx'))
             time.sleep(2)
 
         else:
             print('获取基坐标失败')
         w.click_event(is_exit=True)
         w.screen_event(is_exit=True)
-        w.move_event(is_exit=True)
+        w.drag_event(is_exit=True)
+        QUEUE_DATA.set('is_add_skill_exit', True)
 
 
 if __name__ == '__main__':
     w = WangZhe('3EP0218B06001724')
     # w.d.screenshot_adb()
-    w.run()
+    # w.run()
     # w.close_dialog()
+    w.add_skill_thread()
